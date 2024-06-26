@@ -6,77 +6,51 @@ const apiKey = process.env.API_KEY;
 import axios from 'axios';
 const router = express.Router()
 
+ 
+router.post('/', async (req, res) => {
+  const { date, description, latitude, longitude } = req.body;
+  try {
+    const weatherResponse = await axios.get(`http://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}`);
+    const { weather, main } = weatherResponse.data;
+    const temperature = main.temp;
 
-router.get('/', (req, res) => {
-    res.send('Weather Forecast Journal API');
+    const newEntry = await client.query('INSERT INTO entries (date, description, weather, temperature) VALUES ($1, $2, $3, $4) RETURNING *', [date, description, weather[0].main, temperature]);
+
+    res.json(newEntry.rows[0]);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
-router.get('/weather', async (req, res) => {
-    try {
-      const weatherResponse = await axios.get('http://api.openweathermap.org/data/2.5/weather', {
-        params: {
-            lat: req.query.lat,
-            lon: req.query.lon,
-            appid: apiKey,
-            units: 'metric',
-        },
-    });
-
-        res.json(weatherResponse.data);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch weather data' });
-    }
+router.get('/', async (req, res) => {
+  try {
+    const entries = await client.query('SELECT * FROM entries');
+    res.json(entries.rows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-let journalEntries = [];
-
-router.get('/journal_entries', (req, res) => {
-    res.json(journalEntries);
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { date, description, weather, temperature } = req.body;
+  try {
+    const updatedEntry = await client.query('UPDATE entries SET date = $1, description = $2, weather = $3, temperature = $4 WHERE id = $5 RETURNING *', [date, description, weather, temperature, id]);
+    res.json(updatedEntry.rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-router.get('/journal_entries/:id', (req, res) => {
-    const entryId = parseInt(req.params.id);
-    const entry = journalEntries.find((entry) => entry.id === entryId);
-
-    if (entry) {
-        res.json(entry);
-    } else {
-        res.status(404).json({ error: 'Entry not found' });
-    }
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await client.query('DELETE FROM entries WHERE id = $1', [id]);
+    res.json({ message: 'Entry deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
-router.post('/journal_entries', (req, res) => {
-    const newEntry = req.body;
-    newEntry.id = journalEntries.length > 0 ? journalEntries[journalEntries.length - 1].id + 1 : 1;
-    journalEntries.push(newEntry);
-
-    res.status(201).json(newEntry);
-});
-
-router.put('/journal_entries/:id', (req, res) => {
-    const entryId = parseInt(req.params.id);
-    const entryIndex = journalEntries.findIndex((entry) => entry.id === entryId);
-
-    if (entryIndex !== -1) {
-        const updatedEntry = req.body;
-        journalEntries[entryIndex] = { ...journalEntries[entryIndex], ...updatedEntry };
-
-        res.json(journalEntries[entryIndex]);
-    } else {
-        res.status(404).json({ error: 'Entry not found' });
-    }
-});
-
-router.delete('/journal_entries/:id', (req, res) => {
-    const entryId = parseInt(req.params.id);
-    const initialLength = journalEntries.length;
-    journalEntries = journalEntries.filter((entry) => entry.id !== entryId);
-
-    if (journalEntries.length < initialLength) {
-        res.json({ message: 'Entry deleted successfully' });
-    } else {
-        res.status(404).json({ error: 'Entry not found' });
-    }
-});
-
-export default router;
+export default router

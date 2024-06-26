@@ -10,19 +10,9 @@ const client = new Client({
 });
 
 client.connect()
-  .then(() => {
-    console.log('Connected to the database');
+.then(() => console.log("Connected to the database on port 5000"))
+.catch((err) => console.error(err));
 
-    client.query('SELECT * FROM journal_entries')
-      .then((result) => {
-        const jsonData = JSON.stringify(result.rows);
-        console.log(jsonData);
-      })
-      .catch((error) => {
-        console.error('Error executing SELECT query:', error);
-      });
-    })
-
-    export default client
+export default client
 
  
