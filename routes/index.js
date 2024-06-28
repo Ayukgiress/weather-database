@@ -23,7 +23,7 @@ function handleApiError(error, next) {
     console.error('Unknown Error:', error);
     next(error);
   }
-}
+} 
 
 router.post('/', (req, res, next) => {
   const { date, description, latitude, longitude } = req.body;
