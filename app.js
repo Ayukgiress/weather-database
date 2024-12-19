@@ -1,10 +1,11 @@
 import createError from "http-errors";
 import express from "express";
-
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 
 import indexRouter from "./routes/index.js";
+import cors from 'cors'
+const PORT = 5000;
 // import userRouter from "./routes/users.js"
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(cors());
 
 app.use("/", indexRouter);
 
@@ -32,4 +34,12 @@ app.use(function (err, req, res, next) {
   res.send({ message: err.message, code: err.status });
 });
 
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 export default app;
+
+
+
+
